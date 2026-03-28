@@ -366,9 +366,9 @@
         <div style="color:#4B5563;font-size:11px;font-family:monospace;letter-spacing:0.06em;">FINANCE AGENT v1.0</div>
       </div>
     </div>
-    <label style="display:block;font-size:11px;color:#9CA3AF;margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase;font-family:monospace;">Anthropic API Key</label>
-    <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="width:100%;padding:10px 14px;background:#0F1410;border:1px solid #1F2D21;border-radius:8px;color:#F0FDF4;font-family:monospace;font-size:13px;outline:none;margin-bottom:10px;">
-    <div style="font-size:11px;color:#4B5563;margin-bottom:20px;line-height:1.6;font-family:'Syne',sans-serif;">Key টা শুধু এই browser session এ থাকবে। কোথাও save হবে না।</div>
+    <label style="display:block;font-size:11px;color:#9CA3AF;margin-bottom:6px;letter-spacing:0.08em;text-transform:uppercase;font-family:monospace;">Gemini API Key</label>
+    <input type="password" id="api-key-input" placeholder="AIza..." style="width:100%;padding:10px 14px;background:#0F1410;border:1px solid #1F2D21;border-radius:8px;color:#F0FDF4;font-family:monospace;font-size:13px;outline:none;margin-bottom:10px;">
+    <div style="font-size:11px;color:#4B5563;margin-bottom:20px;line-height:1.6;font-family:'Syne',sans-serif;">Key টা শুধু এই browser session এ থাকবে। aistudio.google.com থেকে নিন।</div>
     <button onclick="setupAPI()" style="width:100%;padding:12px;background:#4ADE80;color:#0F1410;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;">শুরু করুন →</button>
   </div>
 </div>
@@ -451,8 +451,8 @@
 
   function setupAPI() {
     const key = document.getElementById('api-key-input').value.trim();
-    if (!key || !key.startsWith('sk-ant-')) {
-      alert('সঠিক Anthropic API key দিন। sk-ant- দিয়ে শুরু হওয়া উচিত।');
+    if (!key) {
+      alert('Gemini API key দিন।');
       return;
     }
     API_KEY = key;
@@ -637,24 +637,27 @@ Categories: Books, Bag, School Fee, Madrasa Fee, Award, Stationery, Campaign Cos
     showTyping();
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: conversationHistory
-        })
-      });
+      // Build Gemini format conversation history
+      const geminiContents = conversationHistory.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }));
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: geminiContents,
+            generationConfig: { maxOutputTokens: 1000, temperature: 0.3 }
+          })
+        }
+      );
 
       const data = await response.json();
-      const rawReply = data.content?.[0]?.text || 'দুঃখিত, কিছু একটা সমস্যা হয়েছে।';
+      const rawReply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'দুঃখিত, কিছু একটা সমস্যা হয়েছে।';
 
       hideTyping();
       conversationHistory.push({ role: 'assistant', content: rawReply });

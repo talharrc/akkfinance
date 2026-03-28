@@ -449,7 +449,7 @@
   const WEBHOOK_URL = 'https://hook.eu1.make.com/8pm734yo2sa6coyrfcy6qmx0x4vhbsro';
   let API_KEY = '';
 
-  function setupAPI() {
+  window.setupAPI = function() {
     const key = document.getElementById('api-key-input').value.trim();
     if (!key) {
       alert('Gemini API key দিন।');
@@ -457,10 +457,13 @@
     }
     API_KEY = key;
     document.getElementById('setup-screen').style.display = 'none';
-  }
+  };
 
-  document.getElementById('api-key-input').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') setupAPI();
+  document.addEventListener('DOMContentLoaded', function() {
+    const inp = document.getElementById('api-key-input');
+    if (inp) inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') window.setupAPI();
+    });
   });
 
   const SYSTEM_PROMPT = `তুমি AKK Edu Jr. Accountant — আসুন কিছু করি শিক্ষাসেবা প্রকল্পের Finance Assistant।
@@ -595,7 +598,9 @@ Categories: Books, Bag, School Fee, Madrasa Fee, Award, Stationery, Campaign Cos
       .replace(/\n/g, '<br>');
   }
 
-  async function sendToSheets(payload) {
+  window.send = send;
+  window.quickSend = quickSend;
+
     try {
       await fetch(WEBHOOK_URL, {
         method: 'POST',
